@@ -8,7 +8,7 @@
 
 # sql code for table and columns used in the code
 
-```
+```sql
 CREATE DATABASE todoapp;
 
 USE todoapp;
