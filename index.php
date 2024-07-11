@@ -1,141 +1,85 @@
+<?php
+include 'dbh.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Todo App</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
+    <title>To-Do app</title>
 
-        .container {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            width: 400px;
-        }
 
-        h1 {
-            text-align: center;
-        }
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="styles.css">
 
-        form {
-            display: flex;
-            flex-direction: column;
-        }
+    <script>
+        $(document).ready(function() {
+            $("#todo_list").load("load-todo.php");
 
-        input[type="text"] {
-            padding: 10px;
-            margin-top: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
+            $("#btn").click(function(e) {
+                e.preventDefault();
+                var todo = $("#value").val().trim();
+                if (todo !== "") {
+                    $.ajax({
+                        type: "POST",
+                        url: "add.php",
+                        data: {
+                            todo: todo
+                        },
+                        success: function(response) {
+                            $("#todo_list").load("load-todo.php");
+                            $("#value").val("");
+                        },
+                        error: function(xhr, status, error) {
+                            console.error(xhr.responseText);
+                        }
+                    });
+                } else {
+                    alert("Todo cannot be empty!");
+                }
+            });
 
-        input[type="submit"] {
-            margin-top: 10px;
-            padding: 10px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+            $("#todo_list").on("click", ".delete-btn", function(e) {
+                e.preventDefault();
+                var id = $(this).closest("a").attr("href").split("=")[1];
 
-        input[type="submit"]:hover {
-            background-color: #45a049;
-        }
+                $.ajax({
+                    type: "GET",
+                    url: "delete.php",
+                    data: {
+                        delete: id
+                    },
+                    success: function(response) {
+                        response = JSON.parse(response);
+                        if (response.status === "success") {
+                            $("#todo_list").load("load-todo.php");
+                        } else {
+                            alert(response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error(xhr.responseText);
+                    }
+                });
+            });
 
-        ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        li {
-            background: #f9f9f9;
-            margin: 5px 0;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .delete-btn {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 5px 10px;
-            cursor: pointer;
-        }
-    </style>
+        });
+    </script>
 </head>
 
 <body>
+
     <div class="container">
         <h1>Todo App</h1>
         <form action="index.php" method="post">
-            <input type="text" name="todo" placeholder="Enter a new todo" required>
-            <input type="submit" value="Add Todo">
+            <input type="text" id="value" name="todo" placeholder="Enter a new todo" required>
+            <input id="btn" value="Add Todo">
         </form>
+        <ul id="todo_list">
 
-        <?php
-        // Database connection
-        $servername = "localhost";
-        $username = "root";
-        $password = "";
-        $dbname = "todoapp";
+        </ul>
 
-        $conn = new mysqli($servername, $username, $password, $dbname);
-
-        if ($conn->connect_error) {
-            die("Connection failed: " . $conn->connect_error);
-        }
-
-        // Handle form submission
-        if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["todo"])) {
-            $todo = trim($_POST["todo"]);
-            if (!empty($todo)) {
-                $stmt = $conn->prepare("INSERT INTO todos (text) VALUES (?)");
-                $stmt->bind_param("s", $todo);
-                $stmt->execute();
-                $stmt->close();
-            }
-        }
-
-        // Handle delete request
-        if (isset($_GET['delete'])) {
-            $id = intval($_GET['delete']);
-            $stmt = $conn->prepare("DELETE FROM todos WHERE id = ?");
-            $stmt->bind_param("i", $id);
-            $stmt->execute();
-            $stmt->close();
-        }
-
-        // Retrieve and display todos
-        $result = $conn->query("SELECT * FROM todos ORDER BY created_at DESC");
-
-        if ($result->num_rows > 0) {
-            echo "<ul>";
-            while ($row = $result->fetch_assoc()) {
-                echo "<li>" . htmlspecialchars($row['text']) . " <a href='index.php?delete=" . $row['id'] . "'><button class='delete-btn'>Delete</button></a></li>";
-            }
-            echo "</ul>";
-        } else {
-            echo "<p>No todos yet!</p>";
-        }
-
-        $conn->close();
-        ?>
     </div>
 </body>
 
